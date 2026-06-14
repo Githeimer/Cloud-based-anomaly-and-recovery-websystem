@@ -21,6 +21,7 @@ const getRecords = async (req, res) => {
       "SELECT * FROM medical_records WHERE user_id = $1 ORDER BY created_at DESC",
       [user_id]
     );
+    console.log(result.rows)
     res.json({ records: result.rows });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });

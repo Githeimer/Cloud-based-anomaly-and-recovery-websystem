@@ -10,9 +10,11 @@ const { createRecordTable } = require("./models/recordModel");
 
 const authRoutes = require("./routes/authRoutes");
 const recordRoutes = require("./routes/recordRoutes");
+const loggerMiddleware = require("./middleware/logger");
 
 app.use(cors());
 app.use(express.json());
+app.use(loggerMiddleware);
 
 app.get("/", (req, res) => {
   res.json({ message: "Backend is running!" });

@@ -17,15 +17,15 @@ const deriveErrorCode = (statusCode, endpoint) => {
   return "UNKNOWN_ERROR";
 };
 
-// flush buffer to your FastAPI log server every 2 seconds
+// flush buffer to FastAPI log server in every 2 seconds
 const flushLogs = async () => {
   if (logBuffer.length === 0) return;
   const logsToSend = logBuffer.splice(0, logBuffer.length);
 
-  console.log(
-    `[LOGGER] Flushing ${logsToSend.length} log(s):`,
-    JSON.stringify(logsToSend, null, 2),
-  ); // ← add this
+  // console.log(
+  //   `[LOGGER] Flushing ${logsToSend.length} log(s):`,
+  //   JSON.stringify(logsToSend, null, 2),
+  // );
 
   try {
     await fetch(LOG_ENDPOINT, {

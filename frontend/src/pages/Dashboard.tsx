@@ -27,7 +27,7 @@ const Dashboard = () => {
 
   const fetchRecords = async () => {
     try {
-      const res = await axios.get("http://localhost:8000/api/records", {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/records`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRecords(res.data.records);
@@ -39,7 +39,7 @@ const Dashboard = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:8000/api/records",
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/records`,
         { diagnosis, description, prescription, date },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -54,7 +54,7 @@ const Dashboard = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(`http://localhost:8000/api/records/${id}`, {
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/records/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchRecords();

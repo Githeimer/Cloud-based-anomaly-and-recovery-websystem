@@ -80,7 +80,7 @@ const Register = () => {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Shreyan Wasti"
+                  placeholder="Your Fullname"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   required

@@ -24,7 +24,9 @@ dist-ssr
 *.sw?
 .env
 
-#Himesh- personal ignore files
 /credentials
+
+#Himesh- personal ignore files
 roadmap.md
 hci.md
+aws_help.md

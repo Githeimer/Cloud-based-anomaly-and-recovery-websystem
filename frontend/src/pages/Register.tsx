@@ -15,7 +15,7 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("http://localhost:8000/api/auth/register", { name, email, password });
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, { name, email, password });
       toast.success("Account created! Please login.");
       navigate("/login");
     } catch (err: any) {
@@ -80,7 +80,7 @@ const Register = () => {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Shreyan Wasti"
+                  placeholder="Your Fullname"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   required

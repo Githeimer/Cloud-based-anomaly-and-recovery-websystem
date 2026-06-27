@@ -22,11 +22,6 @@ const flushLogs = async () => {
   if (logBuffer.length === 0) return;
   const logsToSend = logBuffer.splice(0, logBuffer.length);
 
-  // console.log(
-  //   `[LOGGER] Flushing ${logsToSend.length} log(s):`,
-  //   JSON.stringify(logsToSend, null, 2),
-  // );
-
   try {
     await fetch(LOG_ENDPOINT, {
       method: "POST",
@@ -34,10 +29,10 @@ const flushLogs = async () => {
       body: JSON.stringify(logsToSend),
     });
   } catch (err) {
-    console.log(err);
+    // python server is down — put logs back in buffer, wait for next flush
+    logBuffer.unshift(...logsToSend);
   }
 };
-
 setInterval(flushLogs, FLUSH_INTERVAL_MS);
 
 // the actual middleware

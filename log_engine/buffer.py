@@ -4,6 +4,7 @@ from uuid import UUID
 
 log_buffer = []
 BATCH_SIZE = 100
+MAX_BUFFER = 5000
 
 def parse_timestamp(ts):
     if ts is None:
@@ -25,7 +26,11 @@ def parse_int(val):
     return int(val)
 
 async def push_to_buffer(log_entry: dict):
+    if len(log_buffer) >= MAX_BUFFER:
+        log_buffer.pop(0)
+        print(f"[BUFFER] Overflow — oldest log dropped (buffer={MAX_BUFFER})")
     log_buffer.append(log_entry)
+
 
 async def flush_buffer():
     if len(log_buffer) == 0:

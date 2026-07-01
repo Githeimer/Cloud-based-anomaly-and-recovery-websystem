@@ -1,55 +1,46 @@
-const pool = require("../database");
+const Model = require("../models/recordModel");
 
-const createRecord = async (req, res) => {
-  const { diagnosis, description, prescription, date } = req.body;
-  const user_id = req.user.id;
+async function getAll(req, res) {
   try {
-    const result = await pool.query(
-      "INSERT INTO medical_records (user_id, diagnosis, description, prescription, date) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [user_id, diagnosis, description, prescription, date]
-    );
-    res.status(201).json({ message: "Record created", record: result.rows[0] });
+    const records = await Model.getAll(req.userId);
+    res.json({ records });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch records" });
   }
-};
+}
 
-const getRecords = async (req, res) => {
-  const user_id = req.user.id;
+async function create(req, res) {
+  if (!req.body.diagnosis) return res.status(400).json({ message: "Diagnosis is required" });
   try {
-    const result = await pool.query(
-      "SELECT * FROM medical_records WHERE user_id = $1 ORDER BY created_at DESC",
-      [user_id]
-    );
-    console.log(result.rows)
-    res.json({ records: result.rows });
+    const record = await Model.create(req.userId, req.body);
+    res.status(201).json({ record });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to create record" });
   }
-};
+}
 
-const updateRecord = async (req, res) => {
-  const { id } = req.params;
-  const { diagnosis, description, prescription, date } = req.body;
+async function update(req, res) {
   try {
-    const result = await pool.query(
-      "UPDATE medical_records SET diagnosis=$1, description=$2, prescription=$3, date=$4 WHERE id=$5 AND user_id=$6 RETURNING *",
-      [diagnosis, description, prescription, date, id, req.user.id]
-    );
-    res.json({ message: "Record updated", record: result.rows[0] });
+    const record = await Model.update(req.userId, req.params.id, req.body);
+    if (!record) return res.status(404).json({ message: "Diagnosis record not found" });
+    res.json({ record });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to update record" });
   }
-};
+}
 
-const deleteRecord = async (req, res) => {
-  const { id } = req.params;
+async function remove(req, res) {
   try {
-    await pool.query("DELETE FROM medical_records WHERE id=$1 AND user_id=$2", [id, req.user.id]);
-    res.json({ message: "Record deleted" });
+    const ok = await Model.remove(req.userId, req.params.id);
+    if (!ok) return res.status(404).json({ message: "Not found" });
+    res.json({ message: "Deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Failed to delete" });
   }
-};
+}
 
-module.exports = { createRecord, getRecords, updateRecord, deleteRecord };
+module.exports = { getAll, create, update, remove };

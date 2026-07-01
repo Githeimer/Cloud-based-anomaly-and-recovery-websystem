@@ -5,8 +5,9 @@ import { useAuth } from "../context/AuthContext";
 import { apiFetch } from "../api";
 import type { AuthResponse } from "../types";
 
-export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -17,14 +18,14 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const data = await apiFetch<AuthResponse>("/auth/register", {
+      const data = await apiFetch<AuthResponse>("/auth/login", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify({ email, password }),
       });
       login(data.user, data.token);
       navigate("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setError(err instanceof Error ? err.message : "Invalid credentials");
     } finally {
       setLoading(false);
     }
@@ -44,8 +45,8 @@ export default function Register() {
           <span className="auth-brand-name">MediCare</span>
         </div>
         <div className="auth-hero">
-          <h1>Start managing your health records today</h1>
-          <p>One secure place for every diagnosis, prescription, appointment, and lab report — accessible whenever you need it.</p>
+          <h1>Your health, organized and always within reach</h1>
+          <p>View your records, track prescriptions, book appointments, and access lab reports — all in one secure place built for you.</p>
         </div>
         <div className="auth-features">
           {features.map((f) => (
@@ -59,37 +60,30 @@ export default function Register() {
 
       <div className="auth-right">
         <div className="auth-form-container">
-          <h2>Create an account</h2>
-          <p>Fill in your details to get started</p>
+          <h2>Welcome back</h2>
+          <p>Sign in to your account to continue</p>
           {error && <div className="auth-error">⚠️ {error}</div>}
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Full name</label>
-              <div className="input-wrapper">
-                <span className="input-icon">👤</span>
-                <input className="form-input" type="text" placeholder="Your full name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
-              </div>
-            </div>
             <div className="form-group">
               <label>Email address</label>
               <div className="input-wrapper">
                 <span className="input-icon">✉️</span>
-                <input className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} required />
+                <input className="form-input" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
             </div>
             <div className="form-group">
               <label>Password</label>
               <div className="input-wrapper">
                 <span className="input-icon">🔒</span>
-                <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
+                <input className="form-input" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
             </div>
             <button className="btn-primary" type="submit" disabled={loading}>
-              {loading ? "Creating account..." : "Create account →"}
+              {loading ? "Signing in..." : "Sign in →"}
             </button>
           </form>
           <div className="auth-switch">
-            Already have an account? <a onClick={() => navigate("/login")}>Sign in</a>
+            Don't have an account? <a onClick={() => navigate("/register")}>Create one</a>
           </div>
         </div>
       </div>

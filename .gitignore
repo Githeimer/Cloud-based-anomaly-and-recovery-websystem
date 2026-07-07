@@ -22,7 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.env
 
+<<<<<<< HEAD
 .env
 # Env files (all locations)
 .env
@@ -31,3 +33,11 @@ backend/.env
 frontend/.env
 .env.local
 **/.env.local
+=======
+/credentials
+
+#Himesh- personal ignore files
+roadmap.md
+hci.md
+aws_help.md
+>>>>>>> main

@@ -1,0 +1,26 @@
+name: Deploy Log Engine
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "log_engine/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_3_HOST }}
+          username: ${{ secrets.EC2_3_USER }}
+          key: ${{ secrets.EC2_3_SSH_KEY }}
+          script: |
+            cd ~/app
+            git pull origin main
+            cd log_engine
+            source venv/bin/activate
+            pip install -r requirements.txt
+            pm2 restart log_engine

@@ -11,7 +11,8 @@ async function getAll(req, res) {
 }
 
 async function create(req, res) {
-  if (!req.body.diagnosis) return res.status(400).json({ message: "Diagnosis is required" });
+  if (!req.body.diagnosis)
+    return res.status(400).json({ message: "Diagnosis is required" });
   try {
     const record = await Model.create(req.userId, req.body);
     res.status(201).json({ record });
@@ -24,7 +25,8 @@ async function create(req, res) {
 async function update(req, res) {
   try {
     const record = await Model.update(req.userId, req.params.id, req.body);
-    if (!record) return res.status(404).json({ message: "Diagnosis record not found" });
+    if (!record)
+      return res.status(404).json({ message: "Diagnosis record not found" });
     res.json({ record });
   } catch (err) {
     console.error(err);

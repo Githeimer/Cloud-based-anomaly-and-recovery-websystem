@@ -24,3 +24,10 @@ dist-ssr
 *.sw?
 
 .env
+# Env files (all locations)
+.env
+**/.env
+backend/.env
+frontend/.env
+.env.local
+**/.env.local

@@ -34,8 +34,8 @@ warnings.filterwarnings("ignore")
 
 # Swap filename here to switch between stacking and voting:
 MODEL_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "ml", "datasets", "classification", "processed", "outputs",
-    "model_hybrid_stacking.joblib"
+    os.path.dirname(__file__), "..", "ml", "models", "main",
+    "model_hybrid_stacking_v2.joblib"
 )
 # ── CLF feature order — must exactly match train_classifier.ipynb CLF_FEATURES ──
 # First 12: shared IF features (same order as detection.py IF_FEATURES).

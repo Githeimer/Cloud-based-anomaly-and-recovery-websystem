@@ -220,7 +220,11 @@ async def _handle_anomaly(source_ip, score, ip_rows, reason, feature_dict):
     now        = datetime.now(timezone.utc)
     last_fired = _recently_flagged.get(source_ip)
     if last_fired and (now - last_fired).total_seconds() < DEDUP_COOLDOWN_SECONDS:
-        print(f"  [{source_ip}] SUPPRESSED (dedup cooldown)  score={score:.4f}")
+        # Still classify so the label is visible even though the DB write
+        # (and any duplicate anomaly_events row) is suppressed.
+        label = model_inference.infer([feature_dict], [ip_rows])[0]
+        print(f"  [{source_ip}] SUPPRESSED (dedup cooldown)  score={score:.4f}  "
+              f"label={label}")
         return
     _recently_flagged[source_ip] = now
 

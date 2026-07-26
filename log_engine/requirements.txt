@@ -24,4 +24,4 @@ psycopg2
 joblib
 numpy
 scikit-learn
-xgboost
+xgboost==3.2.0  # 3.3.0 fails to deserialize saved models: XGBoostError "input stream corrupted" (json.h Invalid cast, Null to Object)

@@ -8,6 +8,8 @@ import Records from "./pages/Records";
 import Prescriptions from "./pages/Prescriptions";
 import Appointments from "./pages/Appointments";
 import Reports from "./pages/Reports";
+import Anomalies from "./pages/Anomalies";
+import TableViewer from "./pages/TableViewer";
 import Security from "./pages/Security";
 import "./index.css";
 
@@ -40,6 +42,8 @@ export default function App() {
           <Route path="/prescriptions" element={<Protected><Prescriptions /></Protected>} />
           <Route path="/appointments" element={<Protected><Appointments /></Protected>} />
           <Route path="/reports" element={<Protected><Reports /></Protected>} />
+          <Route path="/anomalies" element={<Protected><Anomalies /></Protected>} />
+          <Route path="/tables" element={<Protected><TableViewer /></Protected>} />
           <Route path="/security" element={<Protected><Security /></Protected>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

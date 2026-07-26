@@ -184,10 +184,10 @@ async def _write_anomaly_event(source_ip, confidence_score, related_log_ids):
     async with database.pool.acquire() as conn:
         row = await conn.fetchrow("""
             INSERT INTO anomaly_events
-                (anomaly_type, source_ip, confidence_score, related_log_ids)
-            VALUES ('UNCLASSIFIED', $1, $2, $3)
+                (anomaly_type, source_ip, confidence_score)
+            VALUES ('UNCLASSIFIED', $1, $2)
             RETURNING id
-        """, source_ip, confidence_score, related_log_ids)
+        """, source_ip, confidence_score)
     return row["id"]
 
 

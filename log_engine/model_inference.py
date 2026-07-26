@@ -38,10 +38,19 @@ MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "ml",
     "models",
-    "classification",
+    "new_models",
     "main",
     "model_hybrid_voting_v2.joblib",
 )
+
+# MODEL_PATH = os.path.join(
+#     os.path.dirname(os.path.dirname(__file__)),
+#     "ml",
+#     "models",
+#     "classification",
+#     "main",
+#     "model_hybrid_voting_v2.joblib",
+# )
 # ── CLF feature order — must exactly match train_classifier.ipynb CLF_FEATURES ──
 # First 12: shared IF features (same order as detection.py IF_FEATURES).
 # Last  4:  CLF-only features (zero-variance in healthy windows, not used by IF).

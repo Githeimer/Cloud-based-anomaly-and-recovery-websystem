@@ -15,14 +15,17 @@ Per cycle, per source_ip:
        score <  ANOMALY_THRESHOLD  : hard anomaly, cascade to classifier.
        score in between (dead zone): accumulate strikes; flag after DEADZONE_STRIKES.
   4. Anomalous IPs:
-       a. Dedup check — skip if same IP fired within DEDUP_COOLDOWN_SECONDS.
-       b. Write anomaly_events row.
-       c. Cascade to classifier -> get final threat label.
-       d. Update anomaly_events with final label.
+       a. Write anomaly_events row.
+       b. Cascade to classifier -> get final threat label.
+       c. Update anomaly_events with final label.
+
+  No suppression/dedup here — every flagged window is written.
+  Cooldown/suppression is handled downstream by the recovery engine.
 '''
 
 import os
 import statistics
+import asyncio
 from datetime import datetime, timedelta, timezone
 
 import joblib
@@ -33,6 +36,12 @@ import database
 import model_inference
 
 warnings.filterwarnings("ignore")
+
+_recovery_queue: asyncio.Queue | None = None
+
+def set_recovery_queue(queue: asyncio.Queue):
+    global _recovery_queue
+    _recovery_queue = queue
 
 IF_MODEL_PATH = os.path.join(
     os.path.dirname(__file__), "..", "ml", "models", "detection",
@@ -50,12 +59,6 @@ NORMAL_THRESHOLD  =  0.05   # above this -> healthy
 # ── Dead-zone accumulation ────────────────────────────────────────────────────
 DEADZONE_STRIKES = 2
 _deadzone_counter: dict[str, int] = {}   # source_ip -> consecutive strike count
-
-# ── Deduplication guard ───────────────────────────────────────────────────────
-# Same source_ip cannot fire a new anomaly_events row within this cooldown.
-# Prevents duplicate rows from overlapping windows for the same attack burst.
-DEDUP_COOLDOWN_SECONDS = 60
-_recently_flagged: dict[str, datetime] = {}   # source_ip -> last fired time
 
 # ── Feature order — confirmed against trained IF model ────────────────────────
 # Do NOT reorder without re-checking model.feature_names_in_.
@@ -143,14 +146,19 @@ def _build_window_features(ip_rows):
     db_times       = [r["db_query_time_ms"]   or 0 for r in ip_rows]
     status_codes   = [r["status_code"]        or 0 for r in ip_rows]
 
+    # NOTE: status codes below match what the actual attack simulators emit
+    # (Hydra -> /api/auth/login returns 404/500, not 401/403; k6 refresh-abuse
+    # -> /api/records returns 401), not the endpoint-name-substring guesses
+    # this used to use, which made both counts always evaluate to 0.
     failed_login_attempts = sum(
         1 for r in ip_rows
-        if r["endpoint"] and "login" in r["endpoint"]
-        and r["status_code"] in (401, 403)
+        if r["endpoint"] == "/api/auth/login"
+        and r["status_code"] in (404, 500)
     )
     refresh_token_calls  = sum(
         1 for r in ip_rows
-        if r["endpoint"] and "refresh" in r["endpoint"]
+        if r["endpoint"] == "/api/records"
+        and r["status_code"] == 401
     )
     error_count          = sum(1 for s in status_codes if s >= 400)
     unique_endpoints_hit = len({r["endpoint"] for r in ip_rows if r["endpoint"]})
@@ -211,23 +219,14 @@ async def _handle_anomaly(source_ip, score, ip_rows, reason, feature_dict):
     """
     Called when IF flags a window as anomalous.
     Steps:
-      1. Dedup check — suppress if same IP fired within cooldown.
-      2. Write anomaly_events row (UNCLASSIFIED).
-      3. Run classifier -> majority-vote label.
-      4. Update anomaly_events.anomaly_type with final label.
-    """
-    # ── Dedup guard ───────────────────────────────────────────────────────────
-    now        = datetime.now(timezone.utc)
-    last_fired = _recently_flagged.get(source_ip)
-    if last_fired and (now - last_fired).total_seconds() < DEDUP_COOLDOWN_SECONDS:
-        # Still classify so the label is visible even though the DB write
-        # (and any duplicate anomaly_events row) is suppressed.
-        label = model_inference.infer([feature_dict], [ip_rows])[0]
-        print(f"  [{source_ip}] SUPPRESSED (dedup cooldown)  score={score:.4f}  "
-              f"label={label}")
-        return
-    _recently_flagged[source_ip] = now
+      1. Write anomaly_events row (UNCLASSIFIED).
+      2. Run classifier -> majority-vote label.
+      3. Update anomaly_events.anomaly_type with final label.
+      4. Queue event for recovery engine.
 
+    No dedup/suppression here — every flagged window gets written.
+    Suppression/cooldown logic is now the recovery engine's responsibility.
+    """
     # ── Write event ───────────────────────────────────────────────────────────
     related_log_ids = [r["id"] for r in ip_rows]
     event_id        = await _write_anomaly_event(source_ip, score, related_log_ids)
@@ -238,6 +237,16 @@ async def _handle_anomaly(source_ip, score, ip_rows, reason, feature_dict):
 
     print(f"  [{source_ip}] ANOMALY ({reason})  score={score:.4f}  "
           f"n={len(ip_rows)}  label={final_label}  event_id={event_id}")
+
+    # ── Queue for recovery ────────────────────────────────────────────────────
+    if _recovery_queue is not None: # if recovery engine is running, queue the event for it
+        recovery_event = {
+            "type": final_label,  # send the final label 
+            "source_ip": source_ip,  # send the source IP
+            "anomaly_event_id": event_id # send the anomaly event ID
+        }
+        await _recovery_queue.put(recovery_event) # queue the event for the recovery engine
+        print(f"  [{source_ip}] Recovery event queued (type={final_label})") # log the queuing of the recovery event
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -287,7 +296,6 @@ async def run_detection_cycle():
             # ── Healthy ───────────────────────────────────────────────────────
             if score > NORMAL_THRESHOLD:
                 _deadzone_counter.pop(source_ip, None)
-                _recently_flagged.pop(source_ip, None)  # reset cooldown on recovery
                 print(f"  [{source_ip}] HEALTHY   score={score:.4f}  n={len(ip_rows)}")
                 continue
 

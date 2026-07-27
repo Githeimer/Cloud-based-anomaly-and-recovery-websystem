@@ -18,10 +18,11 @@ async def lifespan(app: FastAPI):
 
     recovery_queue = asyncio.Queue()
     health_check.set_recovery_queue(recovery_queue)
+    detection.set_recovery_queue(recovery_queue)
 
     scheduler.add_job(buffer.flush_buffer, "interval", seconds=2)
     scheduler.add_job(health_check.check_health, "interval", seconds=30)
-    # scheduler.add_job(watch_logs.watch_once, "interval", seconds=20)  
+    # scheduler.add_job(watch_logs.watch_once, "interval", seconds=20)
     scheduler.add_job(detection.run_detection_cycle, "interval", seconds=10)
     scheduler.start()
     print("Scheduler started ✅")

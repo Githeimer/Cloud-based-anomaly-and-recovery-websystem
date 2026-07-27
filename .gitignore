@@ -24,7 +24,10 @@ dist-ssr
 *.sw?
 .env
 
+__pycache__/
 /credentials
+*.pyc
+*.pyo
 
 #Himesh- personal ignore files
 roadmap.md

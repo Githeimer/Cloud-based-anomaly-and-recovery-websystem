@@ -1,14 +1,17 @@
 import httpx
 import asyncio
+import database
 from datetime import datetime, timezone
+from dotenv import load_dotenv
 import os
 
-BACKEND_URL = os.getenv("BACKEND_SERVER_URL") # will change to EC2 #1 IP later
-CHECK_INTERVAL = 30  # seconds
-FAILURE_THRESHOLD = 3  # how many consecutive failures before recovery triggers
+load_dotenv()
+
+BACKEND_URL = os.getenv("BACKEND_SERVER_URL")
+FAILURE_THRESHOLD = 3
 
 consecutive_failures = 0
-recovery_queue = None  # will be set from main.py
+recovery_queue = None
 
 def set_recovery_queue(queue: asyncio.Queue):
     global recovery_queue
@@ -38,12 +41,38 @@ async def handle_failure(reason: str):
     print(f"[HEALTH] ❌ Backend check failed ({consecutive_failures}/{FAILURE_THRESHOLD}): {reason}")
 
     if consecutive_failures >= FAILURE_THRESHOLD:
-        print(f"[HEALTH] Threshold reached — triggering recovery")
+        print(f"[HEALTH] Threshold reached — logging anomaly and triggering recovery")
+
+        # write to anomaly_events, get back the ID
+        anomaly_event_id = await log_anomaly_event(reason)
+
         if recovery_queue:
             await recovery_queue.put({
                 "type": "backend_down",
                 "reason": reason,
                 "detected_at": datetime.now(timezone.utc).isoformat(),
-                "source_ip": None
+                "source_ip": None,
+                "anomaly_event_id": anomaly_event_id  # pass ID to recovery engine
             })
-        consecutive_failures = 0  # reset after triggering
+
+        consecutive_failures = 0
+
+async def log_anomaly_event(reason: str) -> int | None:
+    try:
+        async with database.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                INSERT INTO anomaly_events (detected_at, anomaly_type, source_ip, confidence_score)
+                VALUES ($1, $2, $3, $4)
+                RETURNING id
+            """,
+                datetime.now(timezone.utc),
+                "backend_down",
+                None,
+                1.0  # health check is 100% confident
+            )
+            anomaly_event_id = row["id"]
+            print(f"[HEALTH] Anomaly logged to DB — anomaly_events id={anomaly_event_id} ✅")
+            return anomaly_event_id
+    except Exception as e:
+        print(f"[HEALTH] Failed to log anomaly event: {e}")
+        return None

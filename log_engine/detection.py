@@ -23,17 +23,16 @@ Per cycle, per source_ip:
   Cooldown/suppression is handled downstream by the recovery engine.
 '''
 
-import os
 import statistics
 import asyncio
 from datetime import datetime, timedelta, timezone
 
-import joblib
 import numpy as np
 import warnings
 
 import database
-import model_inference
+import detection_load
+import classification
 
 warnings.filterwarnings("ignore")
 
@@ -42,11 +41,6 @@ _recovery_queue: asyncio.Queue | None = None
 def set_recovery_queue(queue: asyncio.Queue):
     global _recovery_queue
     _recovery_queue = queue
-
-IF_MODEL_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "ml", "models", "detection",
-    "isolation_forest_model.joblib"
-)
 
 # ── Window configuration ──────────────────────────────────────────────────────
 WINDOW_SECONDS = 60
@@ -62,20 +56,7 @@ _deadzone_counter: dict[str, int] = {}   # source_ip -> consecutive strike count
 
 # ── Feature order — confirmed against trained IF model ────────────────────────
 # Do NOT reorder without re-checking model.feature_names_in_.
-IF_FEATURES = [
-    "response_time_ms",
-    "request_size_bytes",
-    "requests_per_minute_from_ip",
-    "failed_login_attempts",
-    "refresh_token_calls_per_min",
-    "db_query_latency_ms",
-    "cpu_usage_percent",
-    "status_family",
-    "is_error",
-    "endpoint_risk_score",
-    "db_latency_spike",
-    "auth_failure_ratio",
-]
+IF_FEATURES = detection_load.IF_FEATURES
 
 KNOWN_ENDPOINTS = [
     "/api/auth/login", "/api/auth/register", "/api/auth/logout",
@@ -85,19 +66,6 @@ KNOWN_ENDPOINTS = [
     "/api/admin/users",
 ]
 TOTAL_KNOWN_ENDPOINTS = len(KNOWN_ENDPOINTS)
-
-try:
-    print("Loading Isolation Forest model...")
-    _if_pkg = joblib.load(IF_MODEL_PATH)
-    if isinstance(_if_pkg, dict):
-        _if_model  = _if_pkg["model"]
-        _if_scaler = _if_pkg.get("scaler")
-    else:
-        _if_model  = _if_pkg
-        _if_scaler = None
-    print("Isolation Forest model loaded.\n")
-except FileNotFoundError:
-    raise RuntimeError(f"IF model not found at: {IF_MODEL_PATH}") from None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +106,7 @@ def _build_window_features(ip_rows):
     """
     Aggregate one IP's raw rows into the 12 IF feature vector.
     Returns (feature_dict, np.ndarray shape (1,12)).
-    feature_dict is also passed to model_inference.infer() for CLF features.
+    feature_dict is also passed to classification.infer() for CLF features.
     """
     n              = len(ip_rows)
     response_times = [r["response_time_ms"]  or 0 for r in ip_rows]
@@ -232,7 +200,7 @@ async def _handle_anomaly(source_ip, score, ip_rows, reason, feature_dict):
     event_id        = await _write_anomaly_event(source_ip, score, related_log_ids)
 
     # ── Classify ──────────────────────────────────────────────────────────────
-    labels      = model_inference.infer([feature_dict], [ip_rows])
+    labels      = classification.infer([feature_dict], [ip_rows])
     final_label = await _update_anomaly_label(event_id, labels)
 
     print(f"  [{source_ip}] ANOMALY ({reason})  score={score:.4f}  "
@@ -290,6 +258,8 @@ async def run_detection_cycle():
                 continue
 
             feature_dict, vector = _build_window_features(ip_rows)
+            _if_scaler = detection_load.get_if_scaler()
+            _if_model = detection_load.get_if_model()
             X     = _if_scaler.transform(vector) if _if_scaler is not None else vector
             score = float(_if_model.decision_function(X)[0])
 

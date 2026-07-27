@@ -6,7 +6,7 @@ Sends those logs for inference and displays the predicted labels
 
 import time
 import database
-import model_inference
+import classification
 
 async def fetch_latest(): # fetch the latest 3 logs from the database with asyncpg connection
     async with database.pool.acquire() as conn:
@@ -21,11 +21,13 @@ async def fetch_latest(): # fetch the latest 3 logs from the database with async
             ORDER BY timestamp DESC
             LIMIT 3
         """)
-    return [tuple(r) for r in rows]
+    return [dict(r) for r in rows]
 
 
 def display(rows):  # display the latest 3 logs just fetched from the database, along with their predicted labels
-    labels = model_inference.infer(rows)
+    # Build simple feature dicts for demo purposes (not full detection features)
+    feature_dicts = [{} for _ in rows]
+    labels = classification.infer(feature_dicts, [rows])
     print(f"\n{'='*70}")
     print(f"  Latest 3 logs  ({time.strftime('%H:%M:%S')})")
     print(f"{'='*70}")

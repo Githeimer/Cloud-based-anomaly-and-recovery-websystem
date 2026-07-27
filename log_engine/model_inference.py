@@ -38,8 +38,7 @@ MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "ml",
     "models",
-    "new_models",
-    "main",
+    "new_model",
     "model_hybrid_voting_v2.joblib",
 )
 

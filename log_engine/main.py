@@ -5,28 +5,28 @@ import asyncio
 import database
 import buffer
 import health_check
+from recovery.recovery import recovery_loop
 
 scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # startup
     await database.connect_db()
     await database.init_tables()
 
-    # create shared recovery queue
     recovery_queue = asyncio.Queue()
     health_check.set_recovery_queue(recovery_queue)
 
-    # scheduler jobs
     scheduler.add_job(buffer.flush_buffer, "interval", seconds=2)
     scheduler.add_job(health_check.check_health, "interval", seconds=30)
     scheduler.start()
     print("Scheduler started ✅")
 
+    asyncio.create_task(recovery_loop(recovery_queue))  # ← add this
+    print("Recovery engine started ✅")
+
     yield
 
-    # shutdown
     scheduler.shutdown()
     await buffer.flush_buffer()
     await database.disconnect_db()

@@ -5,6 +5,9 @@ import asyncio
 import database
 import buffer
 import health_check
+import detection_load
+import classification_load
+import detection
 from recovery.recovery import recovery_loop
 
 scheduler = AsyncIOScheduler()
@@ -14,15 +17,21 @@ async def lifespan(app: FastAPI):
     await database.connect_db()
     await database.init_tables()
 
+    # Load models in order: detection first, then classifier
+    detection_load.load_detection_model()
+    classification_load.load_classifier_model()
+
     recovery_queue = asyncio.Queue()
     health_check.set_recovery_queue(recovery_queue)
+    detection.set_recovery_queue(recovery_queue)
 
     scheduler.add_job(buffer.flush_buffer, "interval", seconds=2)
     scheduler.add_job(health_check.check_health, "interval", seconds=30)
+    scheduler.add_job(detection.run_detection_cycle, "interval", seconds=10)
     scheduler.start()
     print("Scheduler started ✅")
 
-    asyncio.create_task(recovery_loop(recovery_queue))  # ← add this
+    asyncio.create_task(recovery_loop(recovery_queue))
     print("Recovery engine started ✅")
 
     yield

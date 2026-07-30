@@ -14,7 +14,7 @@ EC2_1_KEY_PATH = os.getenv("EC2_1_KEY_PATH")
 MAX_RETRIES = 3
 RETRY_DELAYS = [0, 5, 15]
 
-async def restart_backend():
+async def restart_backend(anomaly_event_id: int | None = None):
     success = False
     output = None
 
@@ -35,7 +35,7 @@ async def restart_backend():
             output = str(e)
             print(f"[BACKEND RECOVERY] ❌ Attempt {attempt + 1} failed: {e}")
 
-    await _log_action(success, output)
+    await _log_action(success, output, anomaly_event_id)
 
 def _ssh_restart():
     ssh = paramiko.SSHClient()
@@ -51,18 +51,19 @@ def _ssh_restart():
     ssh.close()
     return output
 
-async def _log_action(success: bool, output: str):
+async def _log_action(success: bool, output: str, anomaly_event_id: int | None):
     try:
         async with database.pool.acquire() as conn:
             await conn.execute("""
-                INSERT INTO recovery_actions (fired_at, action_taken, success, output)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO recovery_actions (fired_at, anomaly_event_id, action_taken, success, output)
+                VALUES ($1, $2, $3, $4, $5)
             """,
                 datetime.now(timezone.utc),
+                anomaly_event_id,
                 "pm2 restart backend",
                 success,
                 output
             )
-        print(f"[BACKEND RECOVERY] Logged to DB ✅")
+        print(f"[BACKEND RECOVERY] Logged to DB ✅ (anomaly_event_id={anomaly_event_id})")
     except Exception as e:
         print(f"[BACKEND RECOVERY] Failed to log: {e}")

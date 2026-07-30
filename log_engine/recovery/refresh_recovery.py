@@ -55,10 +55,10 @@ def _ssh_rate_limit(source_ip: str) -> str:
         key_filename=EC2_1_KEY_PATH,
         timeout=10
     )
-    # allow limited rate, drop the rest
+    # drop first so the ACCEPT-with-limit rule ends up above it in the chain
     commands = [
-        f"sudo iptables -I INPUT -s {source_ip} -p tcp --dport 8000 -m limit --limit {RATE_LIMIT_PER_MIN}/min --limit-burst {RATE_LIMIT_BURST} -j ACCEPT",
         f"sudo iptables -I INPUT -s {source_ip} -p tcp --dport 8000 -j DROP",
+        f"sudo iptables -I INPUT -s {source_ip} -p tcp --dport 8000 -m limit --limit {RATE_LIMIT_PER_MIN}/min --limit-burst {RATE_LIMIT_BURST} -j ACCEPT",
     ]
     output = ""
     for cmd in commands:

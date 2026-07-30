@@ -23,7 +23,7 @@ app.use("/api/anomalies", anomalyRoutes);
 app.use("/api/tables", tableViewerRoutes);
 
 app.get("/", (req, res) => {
-  (req, res) => res.json({ status: "ok" });
+  res.json({ status: "ok" });
 });
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 const PORT = process.env.PORT || 8000;

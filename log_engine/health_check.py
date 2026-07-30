@@ -29,10 +29,10 @@ async def check_health():
                     print(f"[HEALTH] Backend recovered ✅ (was down for {consecutive_failures} check(s))")
                 consecutive_failures = 0
             else:
-                await handle_failure(f"unexpected status {response.status_code}")
+                await handle_failure(f"GET {BACKEND_URL} returned unexpected status {response.status_code}")
 
     except Exception as e:
-        await handle_failure(str(e))
+        await handle_failure(f"{type(e).__name__} while GET {BACKEND_URL}: {e}")
 
 async def handle_failure(reason: str):
     global consecutive_failures

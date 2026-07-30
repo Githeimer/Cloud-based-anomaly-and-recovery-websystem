@@ -21,6 +21,10 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/anomalies", anomalyRoutes);
 app.use("/api/tables", tableViewerRoutes);
+
+app.get("/", (req, res) => {
+  (req, res) => res.json({ status: "ok" });
+});
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

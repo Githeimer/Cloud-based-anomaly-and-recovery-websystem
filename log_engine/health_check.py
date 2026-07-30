@@ -23,6 +23,8 @@ async def check_health():
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(BACKEND_URL)
+            print("I am here:")
+            print(response)
 
             if response.status_code == 200:
                 if consecutive_failures > 0:

@@ -21,16 +21,18 @@ const deriveErrorCode = (statusCode, endpoint) => {
 const flushLogs = async () => {
   if (logBuffer.length === 0) return;
   const logsToSend = logBuffer.splice(0, logBuffer.length);
-
   try {
-    await fetch(LOG_ENDPOINT, {
+    const res = await fetch(LOG_ENDPOINT, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(logsToSend),
     });
+    if (!res.ok) throw new Error(`log server responded ${res.status}`);
+    console.log(`[LOGGER] flushed ${logsToSend.length} → ${LOG_ENDPOINT}`);
   } catch (err) {
-    // python server is down — put logs back in buffer, wait for next flush
+    console.error(`[LOGGER] FLUSH FAILED → ${LOG_ENDPOINT}:`, err.message);
     logBuffer.unshift(...logsToSend);
+    console.error(`[LOGGER] buffer size now ${logBuffer.length}`);
   }
 };
 setInterval(flushLogs, FLUSH_INTERVAL_MS);

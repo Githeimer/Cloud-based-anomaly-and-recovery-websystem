@@ -6,7 +6,7 @@ import os
 import joblib
 
 IF_MODEL_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "ml", "models", "detection",
+    os.path.dirname(__file__), "ml", "models", "detection",
     "isolation_forest_model.joblib"
 )
 

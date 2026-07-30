@@ -24,6 +24,14 @@ dist-ssr
 *.sw?
 .env
 
+.env
+# Env files (all locations)
+.env
+**/.env
+backend/.env
+frontend/.env
+.env.local
+**/.env.local
 __pycache__/
 /credentials
 *.pyc
@@ -33,3 +41,4 @@ __pycache__/
 roadmap.md
 hci.md
 aws_help.md
+

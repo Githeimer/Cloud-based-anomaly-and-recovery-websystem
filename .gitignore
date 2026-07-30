@@ -24,7 +24,18 @@ dist-ssr
 *.sw?
 .env
 
+.env
+# Env files (all locations)
+.env
+**/.env
+backend/.env
+frontend/.env
+.env.local
+**/.env.local
+__pycache__/
 /credentials
+*.pyc
+*.pyo
 
 #Himesh- personal ignore files
 roadmap.md

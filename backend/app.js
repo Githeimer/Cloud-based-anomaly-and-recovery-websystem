@@ -10,7 +10,7 @@ const reportRoutes = require("./routes/reportRoutes");
 const anomalyRoutes = require("./routes/anomalyRoutes");
 const tableViewerRoutes = require("./routes/tableViewerRoutes");
 const app = express();
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+app.use(cors());
 app.use(express.json());
 app.use(loggerMiddleware);
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));

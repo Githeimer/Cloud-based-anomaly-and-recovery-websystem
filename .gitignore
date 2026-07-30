@@ -50,7 +50,7 @@ venv
 *.pyc
 
 # ML artifacts — too large to keep pulling onto production hosts
-ml/datasets/
-ml/models/
-*.joblib
+# ml/datasets/
+# ml/models/
+# *.joblib
 *.pkl
